@@ -12,16 +12,42 @@
 #include <cstdio>
 #include <cerrno>
 
+namespace {
+
+static
+void
+usage()
+{
+	std::fprintf(stderr, "usage: bin2h [option] <inputfile> <output name>\n");
+	std::fprintf(stderr, "options:\n");
+	std::fprintf(stderr, " -f       overwrite output files even if they already exists\n");
+}
+
+} // !namespace
+
 int
 main(int const argc, char** const argv)
 {
-	if (argc != 3) {
-		std::fprintf(stderr, "usage: bin2h <inputfile> <output name>\n");
+	if (argc != 3 && argc != 4) {
+		usage();
 		return -1;
 	}
 
-	char const * const inFilename = argv[1];
-	std::string name = argv[2];
+	char const * const option = argc == 4 ? argv[1] : nullptr;
+	unsigned const argOffset = option ? 2 : 1;
+
+	bool overwrite = false;
+	if (option) {
+		if (std::strcmp(option, "-f") == 0) {
+			overwrite = true;
+		} else {
+			usage();
+			return -1;
+		}
+	}
+
+	char const * const inFilename = argv[argOffset];
+	std::string name = argv[argOffset + 1];
 	std::replace(name.begin(), name.end(), '.', '_');
 	std::string const outFilenameStr = name + ".h";
 	std::string const outImplFilenameStr = name + "_impl.h";
@@ -40,12 +66,12 @@ main(int const argc, char** const argv)
 	}
 	unsigned const inSize = (unsigned)content.size();
 
-	if (std::fopen(outFilename, "r")) {
+	if (!overwrite && std::fopen(outFilename, "r")) {
 		std::fprintf(stderr, "Error: output file '%s' already exists, refusing to overwrite it\n", outFilename);
 		return -1;
 	}
 
-	if (std::fopen(outImplFilename, "r")) {
+	if (!overwrite && std::fopen(outImplFilename, "r")) {
 		std::fprintf(stderr, "Error: output implementation file '%s' already exists, refusing to overwrite it\n", outImplFilename);
 		return -1;
 	}
